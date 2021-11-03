@@ -33,6 +33,12 @@ val qualify: path -> 'a t -> 'a t
     the pre-existing bindings render [path] inaccessible. *)
 val add: path -> 'a -> 'a t -> 'a t
 
+(** [add_all path tags' tags] adds all the bindings of [tags'] to [tags] with
+    prefix [path]. If there were already bindings at [path], all bindings with
+    that prefix are removed, or @raise Invalid_arg if the pre-existing bindings
+    render [path] inaccessible. *)
+val add_all: path -> 'a t -> 'a t -> 'a t
+
 (** [remove path v tags] is some [tags'] which has all the bindings of [tags]
     except that any accessible via [path] are removed. *)
 val remove: path -> 'a t -> 'a t
@@ -51,6 +57,11 @@ val update: path -> ('a option -> 'a option) -> 'a t -> 'a t
     incompatible bindings are {!val:remove}d before the new bindings are
     {!val:add}ed. *)
 val replace: path -> 'a -> 'a t -> 'a t
+
+(** [replace_all] is like {!val:add_all}, but rather than raising an exception
+    any incompatible bindings are {!val:remove}d before the new bindings are
+    {!val:add}ed. *)
+val replace_all: path -> 'a t -> 'a t -> 'a t
 
 (** [change] is like {!val:update}, but rather than raising an exception any
     incompatible bindings are {!val:replace}d. *)

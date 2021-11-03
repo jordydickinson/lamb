@@ -210,3 +210,48 @@ let update = Update_modifier.modify
 module Change_modifier = Make_modifier (Replace_setter)
 
 let change = Change_modifier.modify
+
+module type Node_linker = sig
+  val link_node: Path.t -> 'a node -> 'a node -> 'a node
+end
+
+module type Linker = sig
+  val link: Path.t -> 'a t -> 'a t -> 'a t
+end
+
+module Make_linker (M: Node_linker): Linker = struct
+  let mismatch = M.link_node
+
+  let rec link_node (path: Path.t) node' node = match path, node with
+  | Here, _ -> node'
+  | Head path, Leaf v -> App (Some v, Some (qualify_node path node'), Int.Map.empty)
+  | Head path, App (v, head, spine) -> App (v, link path (Some node') head, spine)
+  | Head _, Abs _ -> mismatch path node' node
+  | Spine (i, path), Leaf v ->
+    let spine = Int.Map.singleton i (qualify_node path node') in
+    App (Some v, None, spine)
+  | Spine (i, path), App (v, head, spine) ->
+    let spine = spine |> Int.Map.update i (link path @@ Some node') in
+    App (v, head, spine)
+  | Spine _, Abs _ -> mismatch path node' node
+  | Body path, Leaf v -> Abs (Some v, qualify_node path node')
+  | Body path, Abs (v, body) -> Abs (v, link_node path node' body)
+  | Body _, App _ -> mismatch path node' node
+
+  and link path data' data = match data', data with
+  | None, _ -> data
+  | _, None -> data'
+  | Some node', Some node -> Some (link_node path node' node)
+end
+
+module Add_all_linker = Make_linker (struct
+  let link_node _ = invalid_arg "path is incompatible with pre-existing data"
+end)
+
+let add_all = Add_all_linker.link
+
+module Replace_all_linker = Make_linker (struct
+  let link_node path node _ = qualify_node path node
+end)
+
+let replace_all = Replace_all_linker.link
