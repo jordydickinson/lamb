@@ -9,8 +9,24 @@ val empty: 'a t
 (** [is_empty tags] is [true] if [tags] is empty and [false] otherwise. *)
 val is_empty: 'a t -> bool
 
+(** [leaf v] associates [v] with the path [Head]. *)
+val leaf: 'a -> 'a t
+
+(** [app ?tag head spine] associates [tag], if provided, with [Here], all the
+    tags of [head] with the prefix [Head Here], and all the tags of the [i]th
+    element of [spine] with the prefix [Spine (i, Here)]. *)
+val app: ?tag:'a -> 'a t -> 'a t list -> 'a t
+
+(** [abs ?tag body] associates [tag], if provided, with [Here] and all the tags
+    of [body] with the prefix [Body Here]. *)
+val abs: ?tag:'a -> 'a t -> 'a t
+
 (** [singleton path v] associates the single binding of [v] at [path]. *)
 val singleton: path -> 'a -> 'a t
+
+(** [qualify path tags] is a version of [tags] in which all bindings are located
+    under the prefix [path]. *)
+val qualify: path -> 'a t -> 'a t
 
 (** [add path v tags] adds the binding of [v] to [path] in [tags]. If [path]
     was already bound, the old binding is replaced, or @raise Invalid_arg if

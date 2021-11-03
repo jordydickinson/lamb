@@ -9,6 +9,22 @@ let empty = None
 
 let is_empty = Option.is_none
 
+let leaf v = Some (Leaf v)
+
+let app ?tag head spine =
+  let spine = spine |>
+    List.fold_left begin fun (spine, i) -> function
+    | None -> spine, i + 1
+    | Some v -> Int.Map.add i v spine, i + 1
+    end (Int.Map.empty, 0)
+    |> fst
+  in
+  Some (App (tag, head, spine))
+
+let abs ?tag = function
+| None -> Option.map (fun v -> Leaf v) tag
+| Some body -> Some (Abs (tag, body))
+
 let rec qualify_node (path: Path.t) node = match path with
 | Here -> node
 | Head path -> App (None, Option.some @@ qualify_node path node, Int.Map.empty)
@@ -18,6 +34,8 @@ let rec qualify_node (path: Path.t) node = match path with
 | Body path ->
   let body = qualify_node path node in
   Abs (None, body)
+
+let qualify path = Option.map (qualify_node path)
 
 let singleton_node path v = qualify_node path (Leaf v)
 
