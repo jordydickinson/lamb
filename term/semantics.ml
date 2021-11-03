@@ -13,7 +13,6 @@ type (+'atom, +'ann) t =
 | Abs of ('atom, 'ann) clos
 | App of ('atom, 'ann) t * ('atom, 'ann) t list
 
-
 and (+'atom, +'ann) ctx = (('atom, 'ann) t, ('atom, 'ann) t, 'ann) Ctx.t
 
 and (+'atom, +'ann) clos =
