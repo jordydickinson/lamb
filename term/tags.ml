@@ -211,6 +211,28 @@ module Change_modifier = Make_modifier (Replace_setter)
 
 let change = Change_modifier.modify
 
+let rec unlink (path: Path.t) data = match path, data with
+| Here, _ -> data, None
+| Head path, Some App (v, head, spine) ->
+  let data', head' = unlink path head in
+  data', if head == head' then data else Some (App (v, head', spine))
+| Head _, _ -> None, data
+| Spine (i, path), Some App (v, head, spine) ->
+  let data', spine_i' = unlink path (Int.Map.find_opt i spine) in
+  let spine' =
+    Option.map (Fun.flip (Int.Map.add i) spine) spine_i'
+    |> Option.value ~default:spine
+  in
+  data', if spine == spine' then data else Some (App (v, head, spine'))
+| Spine _, _ -> None, data
+| Body path, Some Abs (v, body) ->
+  let data', body' = unlink path (Some body) in
+  begin match body' with
+  | None -> data', Option.map (fun v -> Leaf v) v
+  | Some body' -> data', if body == body' then data else Some (Abs (v, body'))
+  end
+| Body _, _ -> None, data
+
 module type Node_linker = sig
   val link_node: Path.t -> 'a node -> 'a node -> 'a node
 end
@@ -255,3 +277,19 @@ module Replace_all_linker = Make_linker (struct
 end)
 
 let replace_all = Replace_all_linker.link
+
+let rename_quotient (q: Path.quotient) data = match q.frac with
+| None -> data
+| Some (n, d) ->
+  let data', data = unlink (Path.add q.whole n) data in
+  add_all (Path.add q.whole d) data' data
+
+let rename ~src ~dst data = rename_quotient (Path.div src dst) data
+
+let move_quotient (q: Path.quotient) data = match q.frac with
+| None -> data
+| Some (n, d) ->
+  let data', data = unlink (Path.add q.whole n) data in
+  replace_all (Path.add q.whole d) data' data
+
+let move ~src ~dst data = move_quotient (Path.div src dst) data

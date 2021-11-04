@@ -78,3 +78,12 @@ val find: path -> 'a t -> 'a
 (** [find_opt] is like {!val:find} but it returns [None] rather than raising an
     exception. *)
 val find_opt: path -> 'a t -> 'a option
+
+(** [rename ~src ~dst tags] is [tags] with all the bindings accessible from [src]
+    {!val:remove}d and {!val:add}ed to [dst] or @raise Invalid_arg if
+    pre-existing bindings in [tags] render [dst] inaccesible. *)
+val rename: src:path -> dst:path -> 'a t -> 'a t
+
+(** [move] is like {!val:rename} but rather than raising an exception
+    incompatible bindings are {!val:remove}d. *)
+val move: src:path -> dst:path -> 'a t -> 'a t
