@@ -21,12 +21,7 @@ and (+'atom, +'ann) clos =
   ; body: ('atom, 'ann) Syntax.t
   }
 
-let rec spec ctx : _ Syntax.t -> _ t = function
-| Local i -> Locals.ith i @@ Ctx.locals ctx
-| Global x -> Globals.find x @@ Ctx.globals ctx
-| Atom a -> Atom a
-| Abs (bound, body) -> Abs { ctx; bound; body }
-| App (f, vs) -> App (spec ctx f, List.map (spec ctx) vs)
+type (+'atom, +'ann) vars = (('atom, 'ann) t, ('atom, 'ann) t) Vars.t
 
 let next_neutral pool = Local (Pool.next_level pool)
 
