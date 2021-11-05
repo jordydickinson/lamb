@@ -32,6 +32,23 @@ let add_neutral ?ann ctx =
 let add_neutrals anns ctx =
   List.fold_left (fun ctx ann -> add_neutral ?ann ctx) ctx anns
 
+let neutral_ctx pool =
+  let rec neutral_ctx' ctx =
+    if Pool.equal pool (Locals.pool @@ Ctx.locals ctx)
+    then ctx
+    else neutral_ctx' (add_neutral ctx)
+  in
+  neutral_ctx' @@ Ctx.make Globals.empty
+
+let rec spec ctx : _ Syntax.t -> _ t = function
+| Local i -> Locals.ith i @@ Ctx.locals ctx
+| Global x -> Globals.find x @@ Ctx.globals ctx
+| Atom a -> Atom a
+| Abs (bound, body) -> Abs { ctx; bound; body }
+| App (f, vs) -> App (spec ctx f, List.map (spec ctx) vs)
+
+let fix pool = spec @@ neutral_ctx pool
+
 let open_clos clos =
   let ctx = add_neutrals clos.bound clos.ctx in
   spec ctx clos.body, ctx
