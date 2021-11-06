@@ -13,10 +13,8 @@ type (+'atom, +'ann) t =
 | App of ('atom, 'ann) t * ('atom, 'ann) t list
 
 (** [fix_concrete vars term] fixes all the global variables in [term] to
-  produce a syntactic term. No substitutions are performed and any tags in the
-  term are removed. If the term changes shape for any reason, the paths of
-  tags will need updating in the returned tags structure. *)
-val fix_concrete: (Ident.t, _) Vars.t -> ('atom, 'ann, 'tag) Concrete.t -> ('atom, 'ann) t * 'tag Tags.t
+  produce a syntactic term. No substitutions are performed. *)
+val fix: (Ident.t, _) Vars.t -> ('atom, 'ann) Concrete.t -> ('atom, 'ann) t
 
 (** [equal equal_atom a b] tests the terms [a] and [b] for alpha equivalence,
     using [equal_atom] to compare atoms. *)
