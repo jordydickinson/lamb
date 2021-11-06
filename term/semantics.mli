@@ -88,3 +88,12 @@ val hao: ('atom, 'ann) t -> ('atom, 'ann) t
     evaluation strategy. This strategy is normalizing; i.e., if the term has
     a normal form, then this evaluation strategy will terminate. *)
 val hno: ('atom, 'ann) t -> ('atom, 'ann) t
+
+(** [apo term] reduces [term] to normal form using the applicative order
+    evaluation strategy. This strategy is not normalizing; i.e., for some
+    terms which have normal forms, this strategy may loop forever. In fact,
+    even fixpoints designed for strict evaluation may fail to normalize.
+    However, it is very efficient, and it may be useful if you know that your
+    terms do not contain such fixpoints. For example, languages which perform
+    totality checking can safely use this evaluation strategy. *)
+val apo: ('atom, 'ann) t -> ('atom, 'ann) t

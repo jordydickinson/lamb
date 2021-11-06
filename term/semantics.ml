@@ -178,3 +178,17 @@ let rec hno = function
     App (f', vs')
   | Some v -> hno v
   end
+
+let rec apo = function
+| Local _ | Global _ | Atom _ as e -> e
+| Abs clos as e ->
+  let clos' = under_clos apo clos in
+  if clos == clos' then e else Abs clos'
+| App (f, vs) as e ->
+  let f' = apo f in
+  let vs' = List.map apo vs in
+  begin match beta_app f' vs' with
+  | None when f == f' && vs == vs' -> e
+  | None -> App (f', vs')
+  | Some v -> apo v
+  end
