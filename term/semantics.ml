@@ -2,10 +2,6 @@ module Index = Local.Index
 module Level = Local.Level
 module Pool = Local.Pool
 
-type index = Local.index
-type level = Local.level
-type pool = Local.pool
-
 type (+'atom, +'ann) t =
 | Local of Local.level
 | Global of Global.leveled
