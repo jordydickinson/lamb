@@ -4,8 +4,8 @@ synopsis: "A library for terms in lambda-calculus-based languages"
 maintainer: ["Jordy Dickinson <jordy.dickinson@icloud.com>"]
 authors: ["Jordy Dickinson <jordy.dickinson@icloud.com>"]
 license: "LGPL-3.0"
-homepage: "https://github.com/jordydickinson/context"
-bug-reports: "https://github.com/jordydickinson/context/issues"
+homepage: "https://github.com/jordydickinson/lamb"
+bug-reports: "https://github.com/jordydickinson/lamb/issues"
 depends: [
   "dune" {>= "2.8"}
   "basis"
