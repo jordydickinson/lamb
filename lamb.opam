@@ -8,8 +8,8 @@ homepage: "https://github.com/jordydickinson/lamb"
 bug-reports: "https://github.com/jordydickinson/lamb/issues"
 depends: [
   "dune" {>= "2.8"}
-  "basis"
-  "context"
+  "basis" {>= "0.1.0" & < "0.2"}
+  "context" {>= "0.1.0" & < "0.2"}
   "odoc" {with-doc}
 ]
 build: [
