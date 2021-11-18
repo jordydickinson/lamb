@@ -68,128 +68,131 @@ end
 include Common
 
 module Make (Atom: Atom) = struct
-  include Common
+  module rec T: S with type atom = Atom.t = struct
+    include Common
 
-  type atom = Atom.t
+    type atom = Atom.t
 
-  type nonrec +'ann t = (atom, 'ann) t
-  type nonrec +'ann ctx = (atom, 'ann) ctx
-  type nonrec +'ann clos = (atom, 'ann) clos
-  type nonrec +'ann vars = (atom, 'ann) vars
+    type nonrec +'ann t = (atom, 'ann) t
+    type nonrec +'ann ctx = (atom, 'ann) ctx
+    type nonrec +'ann clos = (atom, 'ann) clos
+    type nonrec +'ann vars = (atom, 'ann) vars
 
-  let beta_app f vs = match f with
-  | Abs { ctx; bound; body } ->
-    let bvs, rem = List.combine_rem bound vs in
-    let ctx = List.fold_left (fun ctx (ann, v) -> Ctx.add ?data:ann v ctx) ctx bvs in
-    begin match rem with
-    | None -> Some (spec ctx body)
-    | Some Left bound -> Some (Abs { ctx; bound; body })
-    | Some Right vs ->
-      let f = spec ctx body in
-      Some (App (f, vs))
-    end
-  | Atom a -> Atom.beta_app a vs
-  | _ -> None
+    let beta_app f vs = match f with
+    | Abs { ctx; bound; body } ->
+      let bvs, rem = List.combine_rem bound vs in
+      let ctx = List.fold_left (fun ctx (ann, v) -> Ctx.add ?data:ann v ctx) ctx bvs in
+      begin match rem with
+      | None -> Some (spec ctx body)
+      | Some Left bound -> Some (Abs { ctx; bound; body })
+      | Some Right vs ->
+        let f = spec ctx body in
+        Some (App (f, vs))
+      end
+    | Atom a -> Atom.beta_app (module T) a vs
+    | _ -> None
 
-  let beta = function
-  | App (f, vs) -> beta_app f vs
-  | _ -> None
+    let beta = function
+    | App (f, vs) -> beta_app f vs
+    | _ -> None
 
-  let under_clos f clos =
-    let body, ctx = open_clos clos in
-    let body = f body |> gen ctx.scope.pool in
-    { clos with body }
+    let under_clos f clos =
+      let body, ctx = open_clos clos in
+      let body = f body |> gen ctx.scope.pool in
+      { clos with body }
 
-  let rec cbn = function
-  | Local _ | Global _ | Atom _ | Abs _ as e -> e
-  | App (f, vs) as e ->
-    let f' = cbn f in
-    begin match beta_app f' vs with
-    | None when f == f' -> e
-    | None -> App (f', vs)
-    | Some v -> cbn v
-    end
+    let rec cbn = function
+    | Local _ | Global _ | Atom _ | Abs _ as e -> e
+    | App (f, vs) as e ->
+      let f' = cbn f in
+      begin match beta_app f' vs with
+      | None when f == f' -> e
+      | None -> App (f', vs)
+      | Some v -> cbn v
+      end
 
-  let rec cbv = function
-  | Local _ | Global _ | Atom _ | Abs _ as e -> e
-  | App (f, vs) as e ->
-    let f' = cbv f in
-    let vs' = List.map cbv vs in
-    begin match beta_app f vs with
-    | None when f == f' && vs == vs' -> e
-    | None -> App (f', vs')
-    | Some v -> cbv v
-    end
+    let rec cbv = function
+    | Local _ | Global _ | Atom _ | Abs _ as e -> e
+    | App (f, vs) as e ->
+      let f' = cbv f in
+      let vs' = List.map cbv vs in
+      begin match beta_app f vs with
+      | None when f == f' && vs == vs' -> e
+      | None -> App (f', vs')
+      | Some v -> cbv v
+      end
 
-  let rec hsr = function
-  | Local _ | Global _ | Atom _ as e -> e
-  | Abs clos as e ->
-    let clos' = under_clos hsr clos in
-    if clos == clos' then e else Abs clos'
-  | App (f, vs) as e ->
-    let f' = hsr f in
-    begin match beta_app f' vs with
-    | None when f == f' -> e
-    | None -> App (f', vs)
-    | Some v -> hsr v
-    end
+    let rec hsr = function
+    | Local _ | Global _ | Atom _ as e -> e
+    | Abs clos as e ->
+      let clos' = under_clos hsr clos in
+      if clos == clos' then e else Abs clos'
+    | App (f, vs) as e ->
+      let f' = hsr f in
+      begin match beta_app f' vs with
+      | None when f == f' -> e
+      | None -> App (f', vs)
+      | Some v -> hsr v
+      end
 
-  let rec nor = function
-  | Local _ | Global _ | Atom _ as e -> e
-  | Abs clos as e ->
-    let clos' = under_clos nor clos in
-    if clos == clos' then e else Abs clos'
-  | App (f, vs) as e ->
-    let f' = cbn f in
-    begin match beta_app f' vs with
-    | None ->
-      let f' = nor f' and vs' = List.map nor vs in
-      if f == f' && vs == vs' then e else
-      App (f', vs')
-    | Some v -> nor v
-    end
+    let rec nor = function
+    | Local _ | Global _ | Atom _ as e -> e
+    | Abs clos as e ->
+      let clos' = under_clos nor clos in
+      if clos == clos' then e else Abs clos'
+    | App (f, vs) as e ->
+      let f' = cbn f in
+      begin match beta_app f' vs with
+      | None ->
+        let f' = nor f' and vs' = List.map nor vs in
+        if f == f' && vs == vs' then e else
+        App (f', vs')
+      | Some v -> nor v
+      end
 
-  let rec hao = function
-  | Local _ | Global _ | Atom _ as e -> e
-  | Abs clos as e ->
-    let clos' = under_clos hao clos in
-    if clos == clos' then e else Abs clos'
-  | App (f, vs) as e ->
-    let f' = cbv f and vs' = List.map hao vs in
-    begin match beta_app f' vs' with
-    | None ->
-      let f' = hao f' in
-      if f == f' && vs == vs' then e else
-      App (f', vs')
-    | Some v -> hao v
-    end
+    let rec hao = function
+    | Local _ | Global _ | Atom _ as e -> e
+    | Abs clos as e ->
+      let clos' = under_clos hao clos in
+      if clos == clos' then e else Abs clos'
+    | App (f, vs) as e ->
+      let f' = cbv f and vs' = List.map hao vs in
+      begin match beta_app f' vs' with
+      | None ->
+        let f' = hao f' in
+        if f == f' && vs == vs' then e else
+        App (f', vs')
+      | Some v -> hao v
+      end
 
-  let rec hno = function
-  | Local _ | Global _ | Atom _ as e -> e
-  | Abs clos as e ->
-    let clos' = under_clos hno clos in
-    if clos == clos' then e else Abs clos'
-  | App (f, vs) as e ->
-    let f' = hsr f in
-    begin match beta_app f' vs with
-    | None ->
-      let f' = hno f' and vs' = List.map hno vs in
-      if f == f' && vs == vs' then e else
-      App (f', vs')
-    | Some v -> hno v
-    end
+    let rec hno = function
+    | Local _ | Global _ | Atom _ as e -> e
+    | Abs clos as e ->
+      let clos' = under_clos hno clos in
+      if clos == clos' then e else Abs clos'
+    | App (f, vs) as e ->
+      let f' = hsr f in
+      begin match beta_app f' vs with
+      | None ->
+        let f' = hno f' and vs' = List.map hno vs in
+        if f == f' && vs == vs' then e else
+        App (f', vs')
+      | Some v -> hno v
+      end
 
-  let rec apo = function
-  | Local _ | Global _ | Atom _ as e -> e
-  | Abs clos as e ->
-    let clos' = under_clos apo clos in
-    if clos == clos' then e else Abs clos'
-  | App (f, vs) as e ->
-    let f' = apo f in
-    let vs' = List.map apo vs in
-    begin match beta_app f' vs' with
-    | None when f == f' && vs == vs' -> e
-    | None -> App (f', vs')
-    | Some v -> apo v
-    end
+    let rec apo = function
+    | Local _ | Global _ | Atom _ as e -> e
+    | Abs clos as e ->
+      let clos' = under_clos apo clos in
+      if clos == clos' then e else Abs clos'
+    | App (f, vs) as e ->
+      let f' = apo f in
+      let vs' = List.map apo vs in
+      begin match beta_app f' vs' with
+      | None when f == f' && vs == vs' -> e
+      | None -> App (f', vs')
+      | Some v -> apo v
+      end
+  end
+  include T
 end

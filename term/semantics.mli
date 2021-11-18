@@ -21,4 +21,4 @@ val spec: ('atom, 'ann) ctx -> ('atom, 'ann) Syntax.t -> ('atom, 'ann) t
     substitutions due to previous calls to [replace]. *)
 val gen: pool -> ('atom, 'ann) t -> ('atom, 'ann) Syntax.t
 
-module Make (Atom: Atom): S with type atom = Atom.t
+module Make (Atom: Atom): S with type atom := Atom.t

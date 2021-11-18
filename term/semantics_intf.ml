@@ -28,13 +28,6 @@ and (+'atom, +'ann) clos =
 
 type (+'atom, +'ann) vars = (('atom, 'ann) t, ('atom, 'ann) t) Vars.t
 
-module type Atom = sig
-  type ('atom, 'ann) tm := ('atom, 'ann) t
-  type t
-
-  val beta_app: t -> (t, 'ann) tm list -> (t, 'ann) tm option
-end
-
 module type S = sig
   type pool := Local.pool
 
@@ -112,4 +105,11 @@ module type S = sig
       terms do not contain such fixpoints. For example, languages which perform
       totality checking can safely use this evaluation strategy. *)
   val apo: 'ann t -> 'ann t
+end
+
+module type Atom = sig
+  type ('atom, 'ann) tm := ('atom, 'ann) t
+  type t
+
+  val beta_app: (module S with type atom = t) -> t -> (t, 'ann) tm list -> (t, 'ann) tm option
 end
