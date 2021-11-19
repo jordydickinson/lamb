@@ -106,6 +106,8 @@ module type S = sig
       terms do not contain such fixpoints. For example, languages which perform
       totality checking can safely use this evaluation strategy. *)
   val apo: ('ann, 'tag) t -> ('ann, 'tag) t
+
+  val delta: ('ann, 'tag) ctx -> ('ann, 'tag) t -> ('ann, 'tag) t option
 end
 
 module type Atom = sig
@@ -113,4 +115,6 @@ module type Atom = sig
   type t
 
   val beta_app: (module S with type atom = t) -> t -> (t, 'ann, 'tag) tm list -> (t, 'ann, 'tag) tm option
+
+  val delta: (module S with type atom = t) -> (t, 'ann, 'tag) ctx -> t -> (t, 'ann, 'tag) tm option
 end

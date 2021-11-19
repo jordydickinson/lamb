@@ -193,6 +193,11 @@ module Make (Atom: Atom) = struct
       | None -> App (tag, f', vs')
       | Some v -> apo v
       end
+
+    let delta ctx = function
+    | Global (_, x) -> Globals.find_opt x (Ctx.globals ctx)
+    | Atom (_, a) -> Atom.delta (module T) ctx a
+    | _ -> None
   end
   include T
 end
