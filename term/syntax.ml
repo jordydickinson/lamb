@@ -4,48 +4,22 @@ include Syntax_intf
 
 module Common = struct
   let rec fix_concrete vars : _ Concrete.t -> _ = function
-  | Local (tag, id) ->
-    let term = Local (Locals.index (Ident.equal id) (Vars.locals vars)) in
-    let tags = match tag with
-    | None -> Tags.empty
-    | Some tag -> Tags.singleton Path.here tag
-    in
-    term, tags
-  | Global (tag, x) ->
-    let term = Global (Globals.fix x @@ Vars.globals vars) in
-    let tags = match tag with
-    | None -> Tags.empty
-    | Some tag -> Tags.singleton Path.here tag
-    in
-    term, tags
-  | Atom (tag, a) ->
-    let term = Atom a in
-    let tags = match tag with
-    | None -> Tags.empty
-    | Some tag -> Tags.singleton Path.here tag
-    in
-    term, tags
-  | Abs (tag, [], body) -> (* Avoids an allocation *)
-    let body, body_tags = fix_concrete vars body in
-    let term = Abs ([], body) in
-    let tags = Tags.abs ?tag body_tags in
-    term, tags
+  | Local (tag, id) -> Local (tag, Locals.index (Ident.equal id) (Vars.locals vars))
+  | Global (tag, x) -> Global (tag, Globals.fix x @@ Vars.globals vars)
+  | Atom (tag, a) -> Atom (tag, a)
+  | Abs (tag, [], body) -> Abs (tag, [], fix_concrete vars body) (* Avoids an allocation *)
   | Abs (tag, bound, body) ->
     let ids, bound = List.split bound in
-    let body, body_tags =
+    let body =
       vars
       |> Vars.update_locals (fun xs -> List.fold_left (Fun.flip Locals.add) xs ids)
       |> Fun.flip fix_concrete body
     in
-    let term = Abs (bound, body) in
-    let tags = Tags.abs ?tag body_tags in
-    term, tags
+    Abs (tag, bound, body)
   | App (tag, f, vs) ->
-    let f, f_tags = fix_concrete vars f in
-    let vs, vs_tags = List.map (fix_concrete vars) vs |> List.split in
-    let term = App (f, vs) in
-    let tags = Tags.app ?tag f_tags vs_tags in
-    term, tags
+    let f = fix_concrete vars f in
+    let vs = List.map (fix_concrete vars) vs in
+    App (tag, f, vs)
 end
 include Common
 
@@ -54,19 +28,19 @@ module Make (Atom: Atom) = struct
     include Common
     
     type atom = Atom.t
-    type nonrec +'ann t = (atom, 'ann) t
+    type nonrec (+'ann, +'tag) t = (atom, 'ann, 'tag) t
 
     let rec equal x y = match x, y with
-    | Local i, Local j -> Index.equal i j
+    | Local (_, i), Local (_, j) -> Index.equal i j
     | Local _, _ -> false
-    | Global x, Global y -> Global.equal x y
+    | Global (_, x), Global (_, y) -> Global.equal x y
     | Global _, _ -> false
-    | Atom a, Atom b -> Atom.equal (module T) a b
+    | Atom (_, a), Atom (_, b) -> Atom.equal (module T) a b
     | Atom _, _ -> false
-    | Abs (xs, body1), Abs (ys, body2) ->
+    | Abs (_, xs, body1), Abs (_, ys, body2) ->
       List.compare_lengths xs ys = 0 && equal body1 body2
     | Abs _, _ -> false
-    | App (f1, vs1), App (f2, vs2) ->
+    | App (_, f1, vs1), App (_, f2, vs2) ->
       equal f1 f2 &&
       List.equal equal vs1 vs2
     | App _, _ -> false
