@@ -11,6 +11,3 @@ type (+'atom, +'ann, +'tag) t =
 | Atom of 'tag option * 'atom
 | Abs of 'tag option * (Ident.t * 'ann option) list * ('atom, 'ann, 'tag) t
 | App of 'tag option * ('atom, 'ann, 'tag) t * ('atom, 'ann, 'tag) t list
-
-(** [replace_tags tags term] replaces all tags in [term] with the contents of [tags]. *)
-val replace_tags: 'tag Tags.t -> ('atom, 'ann, _) t -> ('atom, 'ann, 'tag) t
